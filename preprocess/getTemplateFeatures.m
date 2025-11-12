@@ -6,7 +6,9 @@ function resfeats = getTemplateFeatures(edata, coords)
 % copy properties from edata
 resfeats = struct();
 resfeats.spikecv = mean(edata.spikecv, 2, "omitmissing", "Weights", edata.unitspikes);
-resfeats.spikelv = mean(edata.spikelv, 2, "omitmissing", "Weights", edata.unitspikes);
+spikelv  = edata.spikelv;
+spikelv(isinf(spikelv)) = 0;
+resfeats.spikelv = mean(spikelv, 2, "omitmissing", "Weights", edata.unitspikes);
 resfeats.t2ptime = fixWaveformTimes(edata.t2ptime, edata.unitspikes, 1e-3);
 resfeats.trepol  = fixWaveformTimes(edata.trepol, edata.unitspikes,  1e-3);
 resfeats.t2pval  = fixWaveformTimes(edata.t2pval, edata.unitspikes,  1);
@@ -26,7 +28,8 @@ Nsitesprop    = 13;
 Ncompsdenoise = 3;
 dttrough      = -20:40;
 [Nunits, Nchan, Nt, Ndays] = size(templatemat);
-templatemat         = templatemat - median(templatemat,[2 3]);
+medrem              = median(templatemat,[2 3]);
+templatemat         = templatemat - medrem;
 
 twts      = squeeze(range(templatemat, 3));
 %--------------------------------------------------------------------------
@@ -83,7 +86,7 @@ for iunit = 1:Nunits
         wvfwts   = wvfwts/sum(wvfwts);
         avgwfm   = wvfwts'*utemp(iptsuse, :);
     
-        dayamps(  iday)    = twts(iunit, iptsuse) * wvfwts;
+        dayamps(  iday)    = twts(iunit, iptsuse, iday) * wvfwts;
         daycents( iday, :) = currcent;
         daywvfm(  iday, :) = avgwfm;
         daydecays(iday)    = mean((cwts(imsite)-cwts(iptsuse))./allds(iptsuse), 'omitnan');
@@ -102,12 +105,14 @@ for iunit = 1:Nunits
         cel = getEllipseFromParams(fullparams, 2, 50);
         sitesel = inpolygon(coords(:,1), coords(:,2), cel(1,:), cel(2,:));
         elsiteidx = find(sitesel);
-        axvals    = NaN(size(elsiteidx));
+        axvals    = zeros(size(elsiteidx));
         for isite = 1:nnz(sitesel)
             sctemp = utemp(elsiteidx(isite), :);
             [~, iminsc] = min(sctemp);
             normfac = abs(min(sctemp(1:iminsc)));
-            axvals(isite) = range(sctemp(1:iminsc))/normfac - 1;
+            if normfac > 0
+                axvals(isite) = range(sctemp(1:iminsc))/normfac - 1;
+            end
         end
         dayaxonvalues(iday) = cwts(elsiteidx)'*axvals/sum(cwts(elsiteidx));
         %---------------------------------------------------------------------
