@@ -1,4 +1,4 @@
-# SpikeTracker
+# SpikeTrack
 MATLAB-based neuron tracking across days from chronic electrophysiological recordings in vivo.
 
 Contains tools to:
